@@ -1,0 +1,21 @@
+{
+  "name": "mentalidade",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma coletiva de biblioteca de vídeos e ferramentas de desenvolvimento de comportamento.",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "typescript-eslint": "^8.72.1"
+  }
+}

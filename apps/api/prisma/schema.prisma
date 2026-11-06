@@ -1,0 +1,234 @@
+// Schema do banco de dados da plataforma Mentalidade.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  bio          String?
+  avatarUrl    String?
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+
+  lists       List[]
+  comments    Comment[]
+  likes       Like[]
+  habits      Habit[]
+  goals       Goal[]
+  journal     JournalEntry[]
+  badges      UserBadge[]
+  pointEvents PointEvent[]
+  forks       Fork[]
+  following   Follow[]     @relation("Follower")
+  followers   Follow[]     @relation("Following")
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  lists List[] @relation("ListTags")
+}
+
+model List {
+  id          String   @id @default(cuid())
+  ownerId     String
+  title       String
+  slug        String   @unique
+  description String?
+  theme       String?
+  visibility  String   @default("PUBLIC")
+  likeCount   Int      @default(0)
+  importCount Int      @default(0)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items         ListItem[]
+  comments      Comment[]
+  tags          Tag[]          @relation("ListTags")
+  habits        Habit[]
+  journal       JournalEntry[]
+  forksAsSource Fork[]         @relation("ForkSource")
+  forksAsNew    Fork[]         @relation("ForkNew")
+
+  @@index([ownerId])
+  @@index([visibility, importCount])
+}
+
+model ListItem {
+  id       String  @id @default(cuid())
+  listId   String
+  order    Int
+  url      String
+  title    String
+  platform String
+  note     String?
+
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+}
+
+model Fork {
+  id           String   @id @default(cuid())
+  sourceListId String
+  newListId    String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  sourceList List @relation("ForkSource", fields: [sourceListId], references: [id], onDelete: Cascade)
+  newList    List @relation("ForkNew", fields: [newListId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sourceListId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  listId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+}
+
+model Follow {
+  id          String @id @default(cuid())
+  followerId  String
+  followingId String
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Habit {
+  id           String   @id @default(cuid())
+  userId       String
+  listId       String?
+  name         String
+  frequency    String   @default("DAILY")
+  reminderTime String?
+  createdAt    DateTime @default(now())
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List?      @relation(fields: [listId], references: [id], onDelete: SetNull)
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+model HabitLog {
+  id      String   @id @default(cuid())
+  habitId String
+  date    DateTime
+  status  String   @default("DONE")
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  targetDate  DateTime?
+  status      String    @default("ACTIVE")
+  progress    Int       @default(0)
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones GoalMilestone[]
+
+  @@index([userId])
+}
+
+model GoalMilestone {
+  id     String  @id @default(cuid())
+  goalId String
+  title  String
+  done   Boolean @default(false)
+  order  Int
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+}
+
+model JournalEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  listId     String?
+  title      String?
+  content    String
+  mood       String?
+  visibility String   @default("PRIVATE")
+  createdAt  DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List? @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  code        String @unique
+  name        String
+  description String
+  icon        String?
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model PointEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  points    Int
+  refId     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

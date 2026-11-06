@@ -1,0 +1,37 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Cobertura de testes
+coverage/
+
+# Prisma (banco local)
+prisma/*.db
+prisma/*.db-journal
+
+# Prisma Client gerado
+apps/api/src/generated/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
