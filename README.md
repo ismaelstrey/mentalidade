@@ -2,7 +2,7 @@
 
 Plataforma pública de **biblioteca coletiva de vídeos** e **ferramentas de mudança de comportamento**, criada para apoiar o crescimento pessoal e profissional.
 
-> Status: **Em desenvolvimento** — Fases 0 a 6 concluídas. Fase 7 (deploy) em preparação: PWA, variáveis de produção, configuração de produção do PM2 e página interna de progresso prontos, com a publicação na VPS pendente.
+> Status: **Em desenvolvimento** — Fases 0 a 6 concluídas. Fase 7 (deploy) em preparação: PWA, variáveis de produção, configuração de produção do PM2, imagem Docker compatível com Fly.io e página interna de progresso prontos, com a publicação na VPS pendente.
 
 ## Visão
 
@@ -43,6 +43,9 @@ mentalidade/
 ├─ deploy/            # arquivos de infraestrutura (nginx.conf)
 ├─ docs/              # documentação de planejamento
 ├─ ecosystem.config.cjs  # configuração de produção do PM2
+├─ Dockerfile         # imagem de produção (API + SPA) para contêiner
+├─ fly.toml           # configuração de deploy no Fly.io
+├─ .dockerignore      # arquivos ignorados no build da imagem
 ├─ pnpm-workspace.yaml
 └─ README.md
 ```
@@ -63,11 +66,18 @@ mentalidade/
 - **Fase 4** — Hábitos e metas.
 - **Fase 5** — Diário/reflexões.
 - **Fase 6** — Gamificação e feed social.
-- **Fase 7** — Deploy: PWA, variáveis de produção, PM2 de produção e página de progresso concluídos; VPS + Nginx + HTTPS pendentes.
+- **Fase 7** — Deploy: PWA, variáveis de produção, PM2 de produção, imagem Docker/Fly.io e página de progresso concluídos; VPS + Nginx + HTTPS pendentes.
 
 Detalhes em [docs/roadmap.md](docs/roadmap.md).
 
 ## Alterações recentes
+
+### Deploy em contêiner (Docker + Fly.io)
+
+- **Imagem única:** `Dockerfile` multi-stage (`node:24-bookworm-slim`) que instala o monorepo com pnpm, gera o Prisma Client, compila API e frontend e produz uma imagem final enxuta executando a API como usuário `node`. A mesma imagem serve o frontend compilado (SPA) na porta `8080`, mantendo API e Web na mesma origem.
+- **API servindo a SPA:** `server.ts` entrega os arquivos de `WEB_DIST_DIR` (definido como `/app/apps/web/dist` no contêiner) com fallback de SPA, sem interferir nas rotas `/api`. O `helmet` foi ajustado com `Content-Security-Policy` liberando os players e capas oficiais de vídeo (`frame-src`/`img-src`) e desativando o `Cross-Origin-Embedder-Policy`, necessário para o embed de vídeos de terceiros.
+- **Configuração de deploy:** `.dockerignore` (exclui `node_modules`, `dist`, `.env`, logs e docs do contexto de build) e `fly.toml` (região `gru`, `internal_port` 8080, health check em `/api/health`, `release_command` executando `prisma migrate deploy` e HTTPS forçado). Variáveis sensíveis (`DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`) devem ser definidas via `fly secrets set`.
+- **Build do frontend:** o endereço da API é injetado no build via `ARG VITE_API_URL` (padrão `/api`), mantendo as chamadas na mesma origem em produção.
 
 ### Reprodução de vídeos (embed sob demanda)
 

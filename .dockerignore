@@ -1,0 +1,25 @@
+# Dependências e artefatos de build são gerados dentro da imagem.
+**/node_modules
+**/dist
+**/build
+
+# Arquivos sensíveis — as variáveis vêm de secrets do Fly.io em produção.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs, caches e arquivos temporários.
+**/*.log
+logs
+**/coverage
+**/.DS_Store
+
+# Versionamento, CI e documentação (não são necessários em runtime).
+.git
+.gitignore
+.github
+docs
+*.md
+
+# Artefatos gerados pelo Prisma em desenvolvimento.
+**/src/generated

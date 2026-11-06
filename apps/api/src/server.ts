@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -10,7 +12,26 @@ import { env } from "./utils/env";
 // Cria e configura a instância do Express.
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        // Permite as capas e os players oficiais de vídeo usados no embed sob demanda.
+        "img-src": ["'self'", "data:", "https:"],
+        "frame-src": [
+          "https://www.youtube-nocookie.com",
+          "https://www.instagram.com",
+          "https://www.tiktok.com",
+          "https://www.facebook.com",
+        ],
+        "connect-src": ["'self'", env.CORS_ORIGIN],
+      },
+    },
+    // Necessário para permitir a incorporação de vídeos de outras origens.
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
 
@@ -19,6 +40,24 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rotas da aplicação.
 app.use("/api", router);
+
+// Serve o frontend compilado quando presente (deploy em contêiner único).
+if (fs.existsSync(env.WEB_DIST_DIR)) {
+  app.use(express.static(env.WEB_DIST_DIR));
+
+  // Fallback do SPA: rotas do frontend devolvem o index.html.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    if (req.path.startsWith("/api")) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(env.WEB_DIST_DIR, "index.html"));
+  });
+}
 
 // Tratamento de rotas inexistentes e erros.
 app.use(notFoundHandler);

@@ -1,3 +1,4 @@
+import path from "node:path";
 import "dotenv/config";
 import { z } from "zod";
 
@@ -9,6 +10,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, "JWT_SECRET deve ter no mínimo 16 caracteres."),
   JWT_EXPIRES_IN: z.string().default("1d"),
   CORS_ORIGIN: z.string().default("http://localhost:5180"),
+  // Diretório do frontend compilado, servido pela API no deploy em contêiner.
+  WEB_DIST_DIR: z.string().default(path.resolve(process.cwd(), "public")),
 });
 
 export const env = envSchema.parse(process.env);

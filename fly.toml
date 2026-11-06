@@ -1,0 +1,44 @@
+# Configuração de deploy da plataforma Mentalidade no Fly.io.
+# Referência: https://fly.io/docs/reference/configuration/
+#
+# Antes do primeiro deploy, defina os secrets (valores sensíveis):
+#   fly secrets set DATABASE_URL="postgresql://...neon.tech/mentalidade?sslmode=require" \
+#                   JWT_SECRET="um-segredo-forte-com-16-ou-mais-caracteres" \
+#                   CORS_ORIGIN="https://<app>.fly.dev"
+#
+# Depois, publique com: fly deploy
+
+app = "mentalidade"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  # Aplica as migrações do Prisma antes de liberar a nova versão (no-op quando
+  # o banco já está atualizado).
+  release_command = "sh -c 'cd /app/apps/api && ./node_modules/.bin/prisma migrate deploy'"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  # Verificação de saúde usada pelo Fly.io para validar a aplicação.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
